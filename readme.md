@@ -1,6 +1,8 @@
 # OpenModelica Modal Analyzer
 
-Program logic:
+This is a small GUI tool to compute the eigenfrequencies of a given Modelica Model file.
+
+## What the program does
 - create `linearize.mos` script in temporary directory
   - `loadFile("modelname.mo");`
   - `linearize(modelname, stopTime=0.0);`
@@ -11,8 +13,8 @@ Program logic:
 - compute Eigenfrequencies
 - Display Results
 
-TODO:
-- format eigenfrequencies as table
-- Saving of path inputs
-- autocompletion for available models inside the modelica file?
-- show if model file is valid immidiately on entering
+## TODO
+- [x] format eigenfrequencies as table
+- [x] Restore appstate
+- [ ] autocompletion for available models inside the modelica file?
+- [ ] show if model file is valid immidiately on entering
