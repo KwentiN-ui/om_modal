@@ -1,12 +1,29 @@
 mod misc;
 
-use iced::widget::{Column, button, column, row, text, text_input};
+use iced::{
+    Event, Subscription, Task, event,
+    widget::{Column, button, column, row, text, text_input},
+    window::{self},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::misc::{ModalResult, start_analysis};
 
+pub const APPNAME: &str = "mo_modal";
+pub const CONFIGNAME: &str = "appstate";
+
 pub fn main() -> iced::Result {
-    iced::run(MainApp::update, MainApp::view)
+    iced::application(MainApp::restore, MainApp::update, MainApp::view)
+        .subscription(subscription)
+        .exit_on_close_request(false)
+        .run()
+}
+
+fn subscription(_app: &MainApp) -> Subscription<Message> {
+    event::listen_with(|event, _status, _id| match event {
+        Event::Window(window::Event::CloseRequested) => Some(Message::Exit),
+        _ => None,
+    })
 }
 
 #[derive(Serialize, Deserialize)]
@@ -24,6 +41,7 @@ enum Message {
     ChangedOMCPath(String),
     ChangedModelPath(String),
     ChangedModelName(String),
+    Exit,
 }
 
 impl Default for MainApp {
@@ -39,19 +57,39 @@ impl Default for MainApp {
 }
 
 impl MainApp {
-    fn update(&mut self, message: Message) {
+    fn restore() -> Self {
+        confy::load(APPNAME, CONFIGNAME).unwrap()
+    }
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SubmitAnalysis => match start_analysis(self) {
                 Ok(result) => {
                     println!("          {:?}", &result.eigenfreqs);
                     println!("dampened: {:?}", &result.eigenfreqs_dampened);
                     self.analysis_result = Some(result);
+                    Task::none()
                 }
-                Err(e) => self.info = e.to_string(),
+                Err(e) => {
+                    self.info = e.to_string();
+                    Task::none()
+                }
             },
-            Message::ChangedModelPath(input) => self.model_path = input,
-            Message::ChangedModelName(input) => self.model_name = input,
-            Message::ChangedOMCPath(input) => self.omc_path = input,
+            Message::ChangedModelPath(input) => {
+                self.model_path = input;
+                Task::none()
+            }
+            Message::ChangedModelName(input) => {
+                self.model_name = input;
+                Task::none()
+            }
+            Message::ChangedOMCPath(input) => {
+                self.omc_path = input;
+                Task::none()
+            }
+            Message::Exit => {
+                let _ = confy::store(APPNAME, CONFIGNAME, self);
+                window::latest().and_then(window::close)
+            }
         }
     }
 
