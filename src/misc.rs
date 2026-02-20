@@ -13,7 +13,7 @@ use crate::MainApp;
 
 const TEMP_SCRIPT_NAME: &str = "linearize.mos";
 
-pub fn start_analysis(app: &MainApp) -> Result<ModalResult, Box<dyn Error>> {
+pub fn start_analysis(app: &MainApp) -> Result<Vec<EigenMode>, Box<dyn Error>> {
     let tempdir = TempDir::new()?;
     let mut script = File::create(tempdir.path().join(TEMP_SCRIPT_NAME))?;
 
@@ -32,36 +32,40 @@ pub fn start_analysis(app: &MainApp) -> Result<ModalResult, Box<dyn Error>> {
         .output()?;
 
     // read and parse `linearized_model.mo`
-
     let linearized_model = read_to_string(tempdir.path().join("linearized_model.mo"))?;
 
-    ModalResult::from_linearized_model(&linearized_model)
+    EigenMode::from_linearized_model(&linearized_model)
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ModalResult {
-    pub eigenfreqs: Vec<f64>,
-    pub eigenfreqs_dampened: Vec<f64>,
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EigenMode {
+    pub i: usize,
+    pub re: f64,
+    pub im: f64,
+    pub eigenvalue: f64,
+    pub eigenfreq: f64,
+    pub eigenfreq_dampened: f64,
 }
 
-impl ModalResult {
-    pub fn from_linearized_model(model_content: &str) -> Result<Self, Box<dyn Error>> {
+impl EigenMode {
+    pub fn from_linearized_model(model_content: &str) -> Result<Vec<Self>, Box<dyn Error>> {
         let a_matrix = parse_modelica_a_matrix(model_content)?;
-        let eigenfreqs = a_matrix
-            .complex_eigenvalues()
-            .iter()
-            .map(|lambda| lambda.abs() / (2. * PI))
-            .collect();
-        let eigenfreqs_dampened = a_matrix
-            .complex_eigenvalues()
-            .iter()
-            .map(|lambda| lambda.im / (2. * PI))
-            .collect();
+        let lambda_cmplx = a_matrix.complex_eigenvalues();
 
-        Ok(Self {
-            eigenfreqs,
-            eigenfreqs_dampened,
-        })
+        let modes = lambda_cmplx
+            .iter()
+            .step_by(2)
+            .enumerate()
+            .map(|(i, lambda)| Self {
+                i: i + 1,
+                re: lambda.re,
+                im: lambda.im,
+                eigenvalue: lambda.abs(),
+                eigenfreq: lambda.abs() / (2. * PI),
+                eigenfreq_dampened: lambda.im / (2. * PI),
+            })
+            .collect();
+        Ok(modes)
     }
 }
 
