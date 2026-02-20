@@ -14,6 +14,7 @@ pub const CONFIGNAME: &str = "appstate";
 
 pub fn main() -> iced::Result {
     iced::application(MainApp::restore, MainApp::update, MainApp::view)
+        .title("OpenModelica Modal Analysis")
         .subscription(subscription)
         .exit_on_close_request(false)
         .run()
