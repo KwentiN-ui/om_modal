@@ -5,7 +5,8 @@ use std::path::Path;
 use std::process::Command;
 use std::{error::Error, fs::File};
 
-use nalgebra::{ComplexField, DMatrix, SquareMatrix};
+use nalgebra::{ComplexField, DMatrix};
+use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 
 use crate::MainApp;
@@ -37,30 +38,30 @@ pub fn start_analysis(app: &MainApp) -> Result<ModalResult, Box<dyn Error>> {
     ModalResult::from_linearized_model(&linearized_model)
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct ModalResult {
-    pub a_matrix: DMatrix<f64>,
+    pub eigenfreqs: Vec<f64>,
+    pub eigenfreqs_dampened: Vec<f64>,
 }
 
 impl ModalResult {
     pub fn from_linearized_model(model_content: &str) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
-            a_matrix: parse_modelica_a_matrix(model_content)?,
-        })
-    }
-
-    pub fn eigenfreqs(&self) -> Vec<f64> {
-        self.a_matrix
+        let a_matrix = parse_modelica_a_matrix(model_content)?;
+        let eigenfreqs = a_matrix
             .complex_eigenvalues()
             .iter()
             .map(|lambda| lambda.abs() / (2. * PI))
-            .collect()
-    }
-    pub fn dampened_eigenfreqs(&self) -> Vec<f64> {
-        self.a_matrix
+            .collect();
+        let eigenfreqs_dampened = a_matrix
             .complex_eigenvalues()
             .iter()
             .map(|lambda| lambda.im / (2. * PI))
-            .collect()
+            .collect();
+
+        Ok(Self {
+            eigenfreqs,
+            eigenfreqs_dampened,
+        })
     }
 }
 
@@ -117,5 +118,3 @@ fn parse_modelica_a_matrix(content: &str) -> Result<DMatrix<f64>, Box<dyn Error>
     // DMatrix is dynamic but satisfies SquareMatrix traits if row_count == col_count
     Ok(DMatrix::from_row_slice(row_count, col_count, &data))
 }
-
-// /home/qhuss/Dokumente/GitHub/om_modal/examples/pendel.mo

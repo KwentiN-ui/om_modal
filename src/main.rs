@@ -1,6 +1,7 @@
 mod misc;
 
 use iced::widget::{Column, button, column, row, text, text_input};
+use serde::{Deserialize, Serialize};
 
 use crate::misc::{ModalResult, start_analysis};
 
@@ -8,6 +9,7 @@ pub fn main() -> iced::Result {
     iced::run(MainApp::update, MainApp::view)
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct MainApp {
     omc_path: String,
     model_path: String,
@@ -41,8 +43,8 @@ impl MainApp {
         match message {
             Message::SubmitAnalysis => match start_analysis(self) {
                 Ok(result) => {
-                    println!("          {:?}", &result.eigenfreqs());
-                    println!("dampened: {:?}", &result.dampened_eigenfreqs());
+                    println!("          {:?}", &result.eigenfreqs);
+                    println!("dampened: {:?}", &result.eigenfreqs_dampened);
                     self.analysis_result = Some(result);
                 }
                 Err(e) => self.info = e.to_string(),
@@ -70,7 +72,8 @@ impl MainApp {
             row!(
                 button("Start analysis").on_press(Message::SubmitAnalysis),
                 text(&self.info)
-            )
+            ),
+            text("Results").size(24),
         )
     }
 }

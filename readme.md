@@ -10,3 +10,9 @@ Program logic:
 - parse A Matrix from `linearized_model.mo`
 - compute Eigenfrequencies
 - Display Results
+
+TODO:
+- format eigenfrequencies as table
+- Saving of path inputs
+- autocompletion for available models inside the modelica file?
+- show if model file is valid immidiately on entering
